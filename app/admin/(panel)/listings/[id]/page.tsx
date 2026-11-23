@@ -8,6 +8,7 @@ import { toKampalaInput } from "@/lib/admin/form";
 import { ConfirmButton, SubmitButton } from "@/components/admin/buttons";
 import { Notice, PageHeader, StatusPill, buttonDanger, buttonPrimary, buttonSecondary } from "@/components/admin/ui";
 import AuditHistory from "@/components/admin/AuditHistory";
+import PrintSharePanel from "@/components/admin/PrintSharePanel";
 import ListingForm from "../ListingForm";
 import MediaManager from "../MediaManager";
 import { loadListingFormOptions } from "../options";
@@ -108,6 +109,8 @@ export default async function EditListingPage({ params, searchParams }: PageProp
           )}
         </div>
       </div>
+
+      <PrintSharePanel listingId={listing.id} referenceId={listing.referenceId} status={listing.status} />
 
       <MediaManager listingId={listing.id} media={listing.media} />
 

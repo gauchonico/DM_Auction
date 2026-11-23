@@ -56,6 +56,15 @@ Security model:
 - The middleware only redirects visitors without a session cookie. The real checks (`requireStaff` / `requireAdmin` in `lib/auth.ts`) run in **every** admin page and **every** Server Action, because Server Actions are public endpoints.
 - Server Actions take record IDs from hidden fields, not `.bind()`. A bound action that returns state hangs when a form is submitted before JavaScript loads.
 
+## Short links and QR codes (for print)
+
+Every auction has a permanent short link built from its notice reference: `DM-2026-0142` → `<site>/a/2026-0142`. These links are printed in the newspaper and encoded in QR codes, so **never change the format** ([lib/short-links.ts](lib/short-links.ts)).
+
+- **What readers can type:** the link tolerates mixed case, spaces, a missing `DM-` prefix and missing zero-padding (`dm 2026 142`). `/verify` accepts the same variations.
+- **What each link shows:** published or ended auctions redirect to the listing page. Unpublished ones show a "being verified" page, so QR codes can go to print before an auction goes live. Unknown references get a search box, never a bare 404. A `?s=` source tag is passed through to the listing page.
+- **Getting the codes:** each auction's admin page has a **Print & share** panel with the link, a QR preview and downloads (SVG, SVG with the link printed underneath, and PNG). QR codes use error-correction level Q and keep the standard white border.
+- **Domain:** the links are built from `NEXT_PUBLIC_SITE_URL`. While that is `localhost` or `*.vercel.app`, the panel warns that codes are not for print. Set the permanent domain (`https://dmauction.nmgu.ug`) and redeploy before printing anything.
+
 ## Audit trail (`/admin/audit`, admins only)
 
 Every admin action is written to the `AuditLog` table: who (a snapshot of email and role that survives account deletion), what (a dotted action such as `listing.publish`, plus a summary), which record (a snapshot label such as the notice reference), the before → after values of changed fields, and the IP address and browser.

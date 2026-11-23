@@ -3,6 +3,7 @@ import { Prisma, type ClientType } from "@prisma/client";
 import { prisma } from "./prisma";
 import { PAGE_SIZE, UGANDA_DISTRICTS } from "./constants";
 import { kampalaStartOfToday } from "./format";
+import { referenceCandidates } from "./short-links";
 import type { SearchFilters } from "./search-params";
 
 /* ------------------------------------------------------------------ */
@@ -276,11 +277,18 @@ export async function getRelatedListings(listing: Pick<ListingDetail, "id" | "ca
 /* Notice verification                                                 */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Looks a notice up by the reference a reader typed or scanned, tolerating case, spaces,
+ * a missing "DM-" prefix and missing zero-padding (see referenceCandidates). Returns
+ * listings in any status — callers decide what each status may show.
+ */
 export async function getListingByReference(referenceId: string) {
-  const ref = referenceId.trim();
-  if (!ref || ref.length > 64) return null;
-  return prisma.listing.findFirst({
-    where: { referenceId: { equals: ref, mode: "insensitive" } },
+  if (referenceId.trim().length > 64) return null;
+  const candidates = referenceCandidates(referenceId);
+  if (candidates.length === 0) return null;
+  const matches = await prisma.listing.findMany({
+    where: { OR: candidates.map((ref) => ({ referenceId: { equals: ref, mode: "insensitive" as const } })) },
+    take: candidates.length,
     select: {
       id: true,
       referenceId: true,
@@ -292,6 +300,12 @@ export async function getListingByReference(referenceId: string) {
       client: { select: { name: true, type: true, verified: true } },
     },
   });
+  // Prefer the most literal match (candidates are ordered from exact to most forgiving).
+  for (const ref of candidates) {
+    const hit = matches.find((m) => m.referenceId.toUpperCase() === ref);
+    if (hit) return hit;
+  }
+  return matches[0] ?? null;
 }
 
 /* ------------------------------------------------------------------ */
